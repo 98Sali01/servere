@@ -1,0 +1,10 @@
+{
+  "description": "Showcases artisan jewelry collections with detailed product displays and search features to help users easily find and explore unique handcrafted pieces.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

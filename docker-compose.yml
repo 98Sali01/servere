@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    container_name: fixpc
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    ports:
+      - "8080:3001"
+    environment:
+      - ADMIN_LOGIN=fixpc_admin
+      - ADMIN_PASSWORD="Fx!PC_2026#Adm1n"
+      - PORT=3001
+    volumes:
+      - ./server/data:/app/server/data
+    restart: unless-stopped
