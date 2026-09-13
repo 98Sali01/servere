@@ -87,24 +87,24 @@ export default function App() {
   const [sendError, setSendError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  if (!form.name || !form.phone) return;
-  setSending(true);
-  setSendError("");
-  try {
-    const res = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (!res.ok) throw new Error("Ошибка отправки");
-    setSubmitted(true);
-  } catch {
-    setSendError("Не удалось отправить. Позвоните нам напрямую.");
-  } finally {
-    setSending(false);
+    e.preventDefault();
+    if (!form.name || !form.phone) return;
+    setSending(true);
+    setSendError("");
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Ошибка отправки");
+      setSubmitted(true);
+    } catch {
+      setSendError("Не удалось отправить. Позвоните нам напрямую.");
+    } finally {
+      setSending(false);
+    }
   }
-}
 
   return (
     <div className="min-h-full bg-[#0a0a0a] text-[#f0ede8]">
@@ -435,6 +435,7 @@ export default function App() {
                   </div>
                   <button
                     type="submit"
+                    disabled={sending}
                     className="w-full mono text-sm tracking-widest uppercase bg-[#f5e000] text-[#0a0a0a] py-4 font-bold hover:bg-white transition-colors disabled:opacity-50"
                   >
                     {sending ? "Отправка..." : "Отправить заявку"}

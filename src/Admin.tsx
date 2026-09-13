@@ -10,29 +10,35 @@ type Lead = {
 };
 
 export default function Admin() {
+  const [login, setLogin] = useState(() => localStorage.getItem("admin_login") || "");
   const [password, setPassword] = useState(() => localStorage.getItem("admin_pwd") || "");
   const [authed, setAuthed] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function fetchLeads(pwd: string) {
+  async function fetchLeads(l: string, p: string) {
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/leads", {
-        headers: { "x-admin-password": pwd },
+        headers: {
+          "x-admin-login": l,
+          "x-admin-password": p,
+        },
       });
       if (res.status === 401) {
-        setError("Неверный пароль");
+        setError("Неверный логин или пароль");
         setAuthed(false);
+        localStorage.removeItem("admin_login");
         localStorage.removeItem("admin_pwd");
         return;
       }
       const data = await res.json();
       setLeads(data);
       setAuthed(true);
-      localStorage.setItem("admin_pwd", pwd);
+      localStorage.setItem("admin_login", l);
+      localStorage.setItem("admin_pwd", p);
     } catch {
       setError("Сервер недоступен");
     } finally {
@@ -41,7 +47,7 @@ export default function Admin() {
   }
 
   useEffect(() => {
-    if (password) fetchLeads(password);
+    if (login && password) fetchLeads(login, password);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -51,6 +57,7 @@ export default function Admin() {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        "x-admin-login": login,
         "x-admin-password": password,
       },
       body: JSON.stringify({ status: newStatus }),
@@ -64,13 +71,18 @@ export default function Admin() {
     if (!confirm("Удалить заявку?")) return;
     await fetch(`/api/leads/${id}`, {
       method: "DELETE",
-      headers: { "x-admin-password": password },
+      headers: {
+        "x-admin-login": login,
+        "x-admin-password": password,
+      },
     });
     setLeads((prev) => prev.filter((l) => l.id !== id));
   }
 
   function logout() {
+    localStorage.removeItem("admin_login");
     localStorage.removeItem("admin_pwd");
+    setLogin("");
     setPassword("");
     setAuthed(false);
     setLeads([]);
@@ -82,13 +94,27 @@ export default function Admin() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            fetchLeads(password);
+            fetchLeads(login, password);
           }}
           className="w-full max-w-sm border border-[#2a2a2a] p-8"
         >
           <div className="mono text-[#f5e000] font-bold tracking-widest mb-6">
-            АДМИН-ПАНЕЛЬ
+            FIXPC / ВХОД
           </div>
+
+          <label className="mono text-xs tracking-widest uppercase text-[#555] block mb-2">
+            Логин
+          </label>
+          <input
+            type="text"
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
+            className="w-full bg-[#111] border border-[#2a2a2a] text-[#f0ede8] px-4 py-3 text-sm focus:outline-none focus:border-[#f5e000] mb-4"
+            placeholder="fixpc_admin"
+            autoFocus
+            autoComplete="username"
+          />
+
           <label className="mono text-xs tracking-widest uppercase text-[#555] block mb-2">
             Пароль
           </label>
@@ -98,9 +124,11 @@ export default function Admin() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full bg-[#111] border border-[#2a2a2a] text-[#f0ede8] px-4 py-3 text-sm focus:outline-none focus:border-[#f5e000] mb-4"
             placeholder="••••••••"
-            autoFocus
+            autoComplete="current-password"
           />
+
           {error && <div className="text-red-400 text-xs mb-4">{error}</div>}
+
           <button
             type="submit"
             disabled={loading}
@@ -120,14 +148,14 @@ export default function Admin() {
       <header className="border-b border-[#2a2a2a] sticky top-0 bg-[#0a0a0a] z-10">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="mono text-[#f5e000] font-bold tracking-widest text-sm">
-            FixPC / АДМИН
+            FIXPC / АДМИН
           </div>
           <div className="flex items-center gap-4">
             <span className="mono text-xs text-[#888]">
               Новых: <span style={{ color: "#f5e000" }}>{newCount}</span> / {leads.length}
             </span>
             <button
-              onClick={() => fetchLeads(password)}
+              onClick={() => fetchLeads(login, password)}
               className="mono text-xs text-[#888] hover:text-[#f0ede8]"
             >
               ⟳ Обновить

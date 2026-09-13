@@ -8,9 +8,9 @@ services:
     ports:
       - "8080:3001"
     environment:
-      - ADMIN_LOGIN=fixpc_admin
-      - ADMIN_PASSWORD="Fx!PC_2026#Adm1n"
-      - PORT=3001
+      ADMIN_LOGIN: fixpc_admin
+      ADMIN_PASSWORD: "Fx!PC_2026#Adm1n"
+      PORT: "3001"
     volumes:
       - ./server/data:/app/server/data
     restart: unless-stopped
