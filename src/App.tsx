@@ -195,10 +195,10 @@ export default function App() {
                 Оставить заявку
               </a>
               <a
-                href="tel:+79001234567"
+                href="tel:+79275295942"
                 className="mono text-sm tracking-widest uppercase border border-[#2a2a2a] text-[#f0ede8] px-8 py-4 hover:border-[#f5e000] hover:text-[#f5e000] transition-colors text-center"
               >
-                +7 (900) 123-45-67
+                +7 (927) 529-59-42
               </a>
             </div>
           </div>
@@ -417,7 +417,7 @@ export default function App() {
                       required
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      placeholder="+7 (900) 000-00-00"
+                      placeholder=""
                       className="w-full bg-[#111] border border-[#2a2a2a] text-[#f0ede8] px-4 py-3 text-sm focus:outline-none focus:border-[#f5e000] transition-colors placeholder:text-[#333]"
                     />
                   </div>
@@ -461,23 +461,21 @@ export default function App() {
               <div className="mono text-[#f5e000] font-bold tracking-widest mb-4">FixPC</div>
               <p className="text-[#555] text-sm leading-relaxed">
                 Ремонт компьютеров и ноутбуков в вашем городе.
-                Работаем без выходных с 9:00 до 21:00.
+                Работаем без выходных с 17:00 до 21:00.
               </p>
             </div>
             <div>
               <div className="mono text-xs tracking-widest uppercase text-[#444] mb-4">Контакты</div>
               <div className="space-y-3 text-sm">
-                <a href="tel:+79001234567" className="flex items-center gap-2 text-[#f0ede8] hover:text-[#f5e000] transition-colors">
-                  <span className="text-[#f5e000]">📞</span> +7 (900) 123-45-67
+                <a href="tel:" className="flex items-center gap-2 text-[#f0ede8] hover:text-[#f5e000] transition-colors">
+                  <span className="text-[#f5e000]">📞 </span> 
+                   <span className="group-hover:text-[#f5e000] transition-colors">+7 (927) 529-59-42</span>
                 </a>
                 <a href="https://t.me/kompmasterbot" className="flex items-center gap-2 text-[#f0ede8] hover:text-[#f5e000] transition-colors">
                   <span className="text-[#f5e000]">✈</span> Telegram: @kompmaster
                 </a>
-                <a href="https://wa.me/79001234567" className="flex items-center gap-2 text-[#f0ede8] hover:text-[#f5e000] transition-colors">
-                  <span className="text-[#f5e000]">💬</span> WhatsApp
-                </a>
                 <div className="flex items-center gap-2 text-[#555]">
-                  <span>📍</span> г. Москва, выезд по всему городу
+                  <span>📍</span> г. Волжский, Волгоградская область
                 </div>
               </div>
             </div>
@@ -486,7 +484,7 @@ export default function App() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-[#555]">Пн–Пт</span>
-                  <span>09:00 – 21:00</span>
+                  <span>17:00 – 21:00</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#555]">Сб–Вс</span>
