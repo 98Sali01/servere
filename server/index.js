@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 // --- Конфигурация ---
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = path.join(__dirname, "data", "leads.json");
+const REVIEWS_FILE = path.join(__dirname, "data", "reviews.json");
 
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || "fixpc_admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Fx!PC_2026#Adm1n";
@@ -37,6 +38,33 @@ function writeLeads(leads) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(leads, null, 2), "utf-8");
   } catch (err) {
     console.error("Ошибка записи leads.json:", err.message);
+  }
+}
+
+function ensureReviewsFile() {
+  const dir = path.dirname(REVIEWS_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(REVIEWS_FILE)) fs.writeFileSync(REVIEWS_FILE, "[]", "utf-8");
+}
+
+function readReviews() {
+  try {
+    ensureReviewsFile();
+    const raw = fs.readFileSync(REVIEWS_FILE, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error("Ошибка чтения reviews.json:", err.message);
+    return [];
+  }
+}
+
+function writeReviews(reviews) {
+  try {
+    ensureReviewsFile();
+    fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Ошибка записи reviews.json:", err.message);
   }
 }
 
@@ -139,6 +167,74 @@ app.delete("/api/leads/:id", checkAuth, (req, res) => {
     return res.status(404).json({ error: "Заявка не найдена" });
   }
   writeLeads(filtered);
+  res.json({ ok: true });
+});
+
+// === ОТЗЫВЫ ===
+
+// Публичный список — только опубликованные отзывы
+app.get("/api/reviews", (_req, res) => {
+  const reviews = readReviews().filter((r) => r.status === "published");
+  res.json(reviews);
+});
+
+// Все отзывы — только для админки
+app.get("/api/reviews/all", checkAuth, (_req, res) => {
+  res.json(readReviews());
+});
+
+// Создать новый отзыв (публично, с модерацией)
+app.post("/api/reviews", rateLimit, (req, res) => {
+  const { name, text, rating } = req.body || {};
+
+  if (!name || !text) {
+    return res.status(400).json({ error: "Имя и текст обязательны" });
+  }
+
+  const numRating = Math.min(5, Math.max(1, Number(rating) || 5));
+
+  const review = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: String(name).trim().slice(0, 100),
+    text: String(text).trim().slice(0, 2000),
+    rating: numRating,
+    createdAt: new Date().toISOString(),
+    status: "pending",
+  };
+
+  const reviews = readReviews();
+  reviews.unshift(review);
+  writeReviews(reviews);
+
+  console.log(`[REVIEW] ${review.createdAt} — ${review.name} (${review.rating}★)`);
+
+  res.json({ ok: true, id: review.id });
+});
+
+// Изменить статус отзыва (опубликовать / снять)
+app.patch("/api/reviews/:id", checkAuth, (req, res) => {
+  const { status } = req.body || {};
+  if (!["pending", "published"].includes(status)) {
+    return res.status(400).json({ error: "status должен быть 'pending' или 'published'" });
+  }
+
+  const reviews = readReviews();
+  const review = reviews.find((r) => r.id === req.params.id);
+  if (!review) return res.status(404).json({ error: "Отзыв не найден" });
+
+  review.status = status;
+  writeReviews(reviews);
+  res.json(review);
+});
+
+// Удалить отзыв
+app.delete("/api/reviews/:id", checkAuth, (req, res) => {
+  const reviews = readReviews();
+  const filtered = reviews.filter((r) => r.id !== req.params.id);
+  if (filtered.length === reviews.length) {
+    return res.status(404).json({ error: "Отзыв не найден" });
+  }
+  writeReviews(filtered);
   res.json({ ok: true });
 });
 

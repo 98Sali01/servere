@@ -1,5 +1,12 @@
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
+type Review = {
+  id: string;
+  name: string;
+  text: string;
+  rating: number;
+  createdAt: string;
+  status: "pending" | "published";
+};
 const NAV_LINKS = [
   { label: "Услуги", href: "#services" },
   { label: "Как работаем", href: "#process" },
@@ -41,32 +48,6 @@ const ADVANTAGES = [
   { label: "Выезд", value: "за 1 час", sub: "по городу" },
 ];
 
-const REVIEWS = [
-  {
-    name: "Алексей К.",
-    date: "12 авг 2026",
-    text: "Ноутбук не включался — отдал вечером, на следующий день забрал готовый. Заменили разъём питания, всё работает. Цена адекватная, мастер объяснил что и почему.",
-    rating: 5,
-  },
-  {
-    name: "Марина Д.",
-    date: "3 июл 2026",
-    text: "Словила вирус-вымогатель. Приехал мастер, за 2 часа всё почистил, поставил нормальный антивирус и объяснил как не попасться снова. Спасибо!",
-    rating: 5,
-  },
-  {
-    name: "Сергей В.",
-    date: "19 июн 2026",
-    text: "Делали апгрейд старого системника: поставили SSD и добавили ОЗУ. Комп летает теперь. Работы выполнили быстро, стоимость соответствует заявленной.",
-    rating: 5,
-  },
-  {
-    name: "Ольга П.",
-    date: "2 мая 2026",
-    text: "Переустановили Windows, настроили всё с нуля. Теперь система работает без тормозов. Выезд на дом очень удобно — не пришлось никуда тащить компьютер.",
-    rating: 5,
-  },
-];
 
 function StarRating({ count }: { count: number }) {
   return (
@@ -85,6 +66,19 @@ export default function App() {
 
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewForm, setReviewForm] = useState({ name: "", text: "", rating: 5 });
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewSending, setReviewSending] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+ 
+  
+  useEffect(() => {
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => setReviews(data))
+      .catch(() => setReviews([]));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -106,6 +100,25 @@ export default function App() {
     }
   }
 
+  async function handleReviewSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reviewForm.name || !reviewForm.text) return;
+    setReviewSending(true);
+    setReviewError("");
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reviewForm),
+      });
+      if (!res.ok) throw new Error("Ошибка отправки");
+      setReviewSubmitted(true);
+    } catch {
+      setReviewError("Не удалось отправить. Попробуйте позже.");
+    } finally {
+      setReviewSending(false);
+    }
+  }
   return (
     <div className="min-h-full bg-[#0a0a0a] text-[#f0ede8]">
       {/* NAV */}
@@ -342,19 +355,100 @@ export default function App() {
           <div className="mono text-xs tracking-[0.3em] uppercase text-[#f5e000] mb-4">06 — Отзывы</div>
           <h2 className="text-4xl lg:text-5xl font-bold mb-16">Что говорят клиенты</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#2a2a2a]">
-            {REVIEWS.map((r, i) => (
-              <div key={i} className="bg-[#0a0a0a] p-8">
+             {reviews.length === 0 ? (
+            <div className="bg-[#0a0a0a] p-8 text-center text-[#555] col-span-full">
+              <div className="mono text-sm">Отзывов пока нет. Будьте первым!</div>
+            </div>
+          ) : (
+            reviews.map((r) => (
+              <div key={r.id} className="bg-[#0a0a0a] p-8">
                 <StarRating count={r.rating} />
                 <blockquote className="text-[#ccc] leading-relaxed my-4 text-sm">
                   "{r.text}"
                 </blockquote>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm">{r.name}</span>
-                  <span className="mono text-xs text-[#555]">{r.date}</span>
+                  <span className="mono text-xs text-[#555]">
+                    {new Date(r.createdAt).toLocaleDateString("ru-RU")}
+                  </span>
                 </div>
               </div>
-            ))}
+            ))
+          )}
           </div>
+           <div className="max-w-2xl mx-auto mt-16">
+          {reviewSubmitted ? (
+            <div className="border border-[#f5e000] p-8 text-center">
+              <div className="text-3xl mb-3">✓</div>
+              <h3 className="font-bold text-lg mb-2">Спасибо за отзыв!</h3>
+              <p className="text-[#666] text-sm">Он появится после проверки модератором.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleReviewSubmit} className="space-y-4 border border-[#2a2a2a] p-8">
+              <h3 className="mono text-sm tracking-widest uppercase text-[#f5e000] mb-4">
+                Оставить отзыв
+              </h3>
+
+              <div>
+                <label className="mono text-xs tracking-widest uppercase text-[#555] block mb-2">
+                  Ваше имя *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={reviewForm.name}
+                  onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                  className="w-full bg-[#111] border border-[#2a2a2a] text-[#f0ede8] px-4 py-3 text-sm focus:outline-none focus:border-[#f5e000]"
+                />
+              </div>
+
+              <div>
+                <label className="mono text-xs tracking-widest uppercase text-[#555] block mb-2">
+                  Отзыв *
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={reviewForm.text}
+                  onChange={(e) => setReviewForm({ ...reviewForm, text: e.target.value })}
+                  className="w-full bg-[#111] border border-[#2a2a2a] text-[#f0ede8] px-4 py-3 text-sm focus:outline-none focus:border-[#f5e000] resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="mono text-xs tracking-widest uppercase text-[#555] block mb-2">
+                  Оценка
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                      className={`text-2xl transition-colors ${
+                        star <= reviewForm.rating ? "text-[#f5e000]" : "text-[#333]"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={reviewSending}
+                className="w-full mono text-sm tracking-widest uppercase bg-[#f5e000] text-[#0a0a0a] py-4 font-bold hover:bg-white transition-colors disabled:opacity-50"
+              >
+                {reviewSending ? "Отправка..." : "Отправить отзыв"}
+              </button>
+
+              {reviewError && (
+                <p className="text-red-400 text-xs text-center">{reviewError}</p>
+              )}
+            </form>
+          )}
+        </div>
         </div>
       </section>
 
