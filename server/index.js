@@ -3,6 +3,7 @@ import cors from "cors";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { WebSocketServer } from "ws";
 
 // --- Конфигурация ---
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -134,7 +135,7 @@ app.post("/api/leads", rateLimit, (req, res) => {
   writeLeads(leads);
 
   console.log(`[LEAD] ${lead.createdAt} — ${lead.name} (${lead.phone})`);
-
+  broadcastLead(lead);      
   res.json({ ok: true, id: lead.id });
 });
 
@@ -207,7 +208,7 @@ app.post("/api/reviews", rateLimit, (req, res) => {
   writeReviews(reviews);
 
   console.log(`[REVIEW] ${review.createdAt} — ${review.name} (${review.rating}★)`);
-
+  broadcastReview(review);
   res.json({ ok: true, id: review.id });
 });
 
@@ -250,12 +251,51 @@ if (fs.existsSync(DIST_DIR)) {
   console.warn("⚠ Папка dist/ не найдена — фронт не будет раздаваться");
 }
 
+// ─── WebSocket сервер ───
+const wss = new WebSocketServer({ noServer: true });
+
+function broadcastLead(lead) {
+  const message = JSON.stringify({ type: "new_lead", lead });
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  });
+  console.log(`[WS] Разослано ${wss.clients.size} клиентам`);
+}
+
+function broadcastReview(review) {
+  const message = JSON.stringify({ type: "new_review", review });
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  });
+  console.log(`[WS] Отзыв разослан ${wss.clients.size} клиентам`);
+}
+
 // --- Запуск ---
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("─────────────────────────────────────");
   console.log(`✅ FixPC server работает на http://0.0.0.0:${PORT}`);
+  console.log(`   WebSocket:      ws://0.0.0.0:${PORT}/ws`);
   console.log(`   Логин админки:  ${ADMIN_LOGIN}`);
   console.log(`   Пароль админки: ${ADMIN_PASSWORD}`);
   console.log(`   Файл заявок:    ${DATA_FILE}`);
   console.log("─────────────────────────────────────");
+});
+
+// Подключаем WebSocket к тому же HTTP-серверу
+server.on("upgrade", (req, socket, head) => {
+  if (req.url === "/ws") {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("connection", ws, req);
+      console.log(`[WS] Новый клиент подключён (всего: ${wss.clients.size})`);
+      ws.on("close", () => {
+        console.log(`[WS] Клиент отключён (всего: ${wss.clients.size})`);
+      });
+    });
+  } else {
+    socket.destroy();
+  }
 });

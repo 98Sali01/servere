@@ -59,6 +59,60 @@ export default function Admin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // WebSocket — live-обновления
+  useEffect(() => {
+  if (!authed) return;
+
+  let ws: WebSocket | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let isCleaningUp = false;
+
+  const connect = () => {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${protocol}://${window.location.host}/ws`);
+
+    ws.onopen = () => {
+      console.log("[WS] Подключён");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "new_lead") {
+          setLeads((prev) => [data.lead, ...prev]);
+          console.log("[WS] Новая заявка:", data.lead.name);
+        }
+        if (data.type === "new_review") {
+          setReviews((prev) => [data.review, ...prev]);
+          console.log("[WS] Новый отзыв:", data.review.name);
+        }
+      } catch (e) {
+        console.warn("[WS] Ошибка парсинга:", e);
+      }
+    };
+
+    ws.onerror = (e) => {
+      console.warn("[WS] Ошибка:", e);
+    };
+
+    ws.onclose = () => {
+      console.log("[WS] Соединение закрыто");
+      if (!isCleaningUp) {
+        console.log("[WS] Переподключение через 3с...");
+        reconnectTimer = setTimeout(connect, 3000);
+      }
+    };
+  };
+
+  connect();
+
+  return () => {
+    isCleaningUp = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    ws?.close();
+  };
+}, [authed]);
+
   async function toggleStatus(lead: Lead) {
     const newStatus = lead.status === "new" ? "done" : "new";
     await fetch(`/api/leads/${lead.id}`, {
