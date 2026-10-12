@@ -19,3 +19,5 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+server/data/leads.json
+server/data/reviews.json
