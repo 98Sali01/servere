@@ -24,3 +24,5 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/servere-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
